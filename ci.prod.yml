@@ -3,24 +3,34 @@ prepare:
   steps:
     - name: Download Listmonk and prepare scripts
       command: bash src/prepare.sh
+test:
+  steps: []
 run:
-  db:
+  postgres:
     provider:
       name: postgres
       version: v1
     plan:
       id: 0
-  app:
+      parameters:
+        cpu: 5
+        memory: 512
+    config:
+      version: "17.6"
+    secrets:
+      userPassword: admin
+      superuserPassword: admin
+  listmonk:
+    healthEndpoint: http://localhost:3000/health
     plan: 8
     replicas: 1
-    healthEndpoint: http://localhost:3000/health
-    steps:
-      - name: Generate config
-        command: bash src/generate-config.sh
-      - name: Run database setup
-        command: ./listmonk --install --yes --config config.toml || true
-      - name: Start Listmonk with SMTP setup
-        command: bash src/start.sh
+    network:
+      ports:
+        - port: 3000
+          isPublic: false
+      paths:
+        - port: 3000
+          path: /
     env:
       DB_HOST: ms-postgres-v1-${{ team.id }}-db
       DB_PASSWORD: ${{ vault.DB_PASSWORD }}
@@ -32,10 +42,10 @@ run:
       SMTP_PASSWORD: ${{ vault.SMTP_PASSWORD }}
       FROM_EMAIL: ${{ workspace.env['FROM_EMAIL'] }}
       SITE_NAME: ${{ workspace.env['SITE_NAME'] }}
-    network:
-      ports:
-        - port: 3000
-          isPublic: false
-      paths:
-        - port: 3000
-          path: /
+    steps:
+      - name: Generate config
+        command: bash src/generate-config.sh
+      - name: Run database setup
+        command: ./listmonk --install --yes --config config.toml || true
+      - name: Start Listmonk with SMTP setup
+        command: bash src/start.sh
