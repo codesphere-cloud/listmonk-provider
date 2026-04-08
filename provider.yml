@@ -1,0 +1,67 @@
+name: listmonk
+version: v1
+author: Codesphere
+displayName: Listmonk Newsletter
+iconUrl: https://listmonk.app/static/images/logo.svg
+category: messaging
+description: |
+  Self-hosted newsletter and mailing list manager.
+  Manage subscribers, create campaigns, and send emails.
+  Powered by Listmonk with PostgreSQL storage and SMTP delivery.
+
+backend:
+  landscape:
+    gitUrl: https://github.com/codesphere-cloud/listmonk-provider
+    ciProfile: default
+
+plans:
+  - id: 0
+    name: starter
+    displayName: Starter
+    description: Newsletter instance for small lists
+    parameters: {}
+
+configSchema:
+  type: object
+  properties:
+    ADMIN_USER:
+      type: string
+      description: Admin username for the Listmonk web UI
+    SITE_NAME:
+      type: string
+      description: Name shown in the web UI and email footers
+    FROM_EMAIL:
+      type: string
+      description: Sender email address for outgoing campaigns
+    SMTP_HOST:
+      type: string
+      description: SMTP server hostname (e.g. from a Stalwart Mailbox service)
+    SMTP_PORT:
+      type: integer
+      description: SMTP server port (587 for STARTTLS)
+    SMTP_USER:
+      type: string
+      description: SMTP authentication username
+
+secretsSchema:
+  type: object
+  properties:
+    ADMIN_PASSWORD:
+      type: string
+      format: password
+    SMTP_PASSWORD:
+      type: string
+      format: password
+    DB_PASSWORD:
+      type: string
+      format: password
+
+detailsSchema:
+  type: object
+  properties:
+    url:
+      type: string
+    admin_user:
+      type: string
+    ready:
+      type: boolean
