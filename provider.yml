@@ -12,7 +12,7 @@ description: |
 backend:
   landscape:
     gitUrl: https://github.com/codesphere-cloud/listmonk-provider
-    ciProfile: default
+    ciProfile: __default__
 
 plans:
   - id: 0
