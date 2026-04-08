@@ -2,21 +2,10 @@ schemaVersion: v0.2
 
 prepare:
   steps:
-    - name: Download Listmonk
-      command: |
-        LISTMONK_VERSION=3.0.0
-        if [ ! -f ./listmonk ]; then
-          wget -q "https://github.com/knadh/listmonk/releases/download/v${LISTMONK_VERSION}/listmonk_${LISTMONK_VERSION}_linux_amd64.tar.gz"
-          tar xzf "listmonk_${LISTMONK_VERSION}_linux_amd64.tar.gz"
-          chmod +x listmonk
-          rm -f "listmonk_${LISTMONK_VERSION}_linux_amd64.tar.gz"
-        fi
-
-    - name: Make startup script executable
-      command: chmod +x src/start.sh
+    - name: Download Listmonk and prepare scripts
+      command: bash src/prepare.sh
 
 run:
-  # ── PostgreSQL (Managed Service) ─────────────────────
   db:
     provider:
       name: postgres
@@ -24,35 +13,15 @@ run:
     plan:
       id: 0
 
-  # ── Listmonk Application (Reactive) ─────────────────
   app:
     plan: 0
     replicas: 1
     healthEndpoint: http://localhost:3000/health
     steps:
       - name: Generate config
-        command: |
-          cat > config.toml <<EOF
-          [app]
-          address = "0.0.0.0:3000"
-          admin_username = "$LISTMONK_ADMIN_USER"
-          admin_password = "$LISTMONK_ADMIN_PASSWORD"
-
-          [db]
-          host = "$DB_HOST"
-          port = 5432
-          user = "postgres"
-          password = "$DB_PASSWORD"
-          database = "listmonk"
-          ssl_mode = "disable"
-          max_open = 25
-          max_idle = 25
-          max_lifetime = "300s"
-          EOF
-
+        command: bash src/generate-config.sh
       - name: Run database setup
         command: ./listmonk --install --yes --config config.toml || true
-
       - name: Start Listmonk with SMTP setup
         command: bash src/start.sh
 
