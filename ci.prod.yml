@@ -1,16 +1,13 @@
 schemaVersion: v0.2
-
 prepare:
   steps:
     - name: Download Listmonk and prepare scripts
       command: bash src/prepare.sh
-
 run:
   db:
     provider:
       name: postgres
       version: v1
-
   app:
     plan: 8
     replicas: 1
@@ -22,7 +19,6 @@ run:
         command: ./listmonk --install --yes --config config.toml || true
       - name: Start Listmonk with SMTP setup
         command: bash src/start.sh
-
     env:
       DB_HOST: ms-postgres-v1-${{ team.id }}-db
       DB_PASSWORD: ${{ vault.DB_PASSWORD }}
@@ -34,7 +30,6 @@ run:
       SMTP_PASSWORD: ${{ vault.SMTP_PASSWORD }}
       FROM_EMAIL: ${{ workspace.env['FROM_EMAIL'] }}
       SITE_NAME: ${{ workspace.env['SITE_NAME'] }}
-
     network:
       ports:
         - port: 3000
