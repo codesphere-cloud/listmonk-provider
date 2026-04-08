@@ -10,11 +10,9 @@ run:
     provider:
       name: postgres
       version: v1
-    plan:
-      id: 0
 
   app:
-    plan: 0
+    plan: 8
     replicas: 1
     healthEndpoint: http://localhost:3000/health
     steps:
