@@ -1,0 +1,77 @@
+schemaVersion: v0.2
+
+prepare:
+  steps:
+    - name: Download Listmonk
+      command: |
+        LISTMONK_VERSION=3.0.0
+        if [ ! -f ./listmonk ]; then
+          wget -q "https://github.com/knadh/listmonk/releases/download/v${LISTMONK_VERSION}/listmonk_${LISTMONK_VERSION}_linux_amd64.tar.gz"
+          tar xzf "listmonk_${LISTMONK_VERSION}_linux_amd64.tar.gz"
+          chmod +x listmonk
+          rm -f "listmonk_${LISTMONK_VERSION}_linux_amd64.tar.gz"
+        fi
+
+    - name: Make startup script executable
+      command: chmod +x src/start.sh
+
+run:
+  # ── PostgreSQL (Managed Service) ─────────────────────
+  db:
+    provider:
+      name: postgres
+      version: v1
+    plan:
+      id: 0
+
+  # ── Listmonk Application (Reactive) ─────────────────
+  app:
+    plan: 0
+    replicas: 1
+    healthEndpoint: http://localhost:3000/health
+    steps:
+      - name: Generate config
+        command: |
+          cat > config.toml <<EOF
+          [app]
+          address = "0.0.0.0:3000"
+          admin_username = "$LISTMONK_ADMIN_USER"
+          admin_password = "$LISTMONK_ADMIN_PASSWORD"
+
+          [db]
+          host = "$DB_HOST"
+          port = 5432
+          user = "postgres"
+          password = "$DB_PASSWORD"
+          database = "listmonk"
+          ssl_mode = "disable"
+          max_open = 25
+          max_idle = 25
+          max_lifetime = "300s"
+          EOF
+
+      - name: Run database setup
+        command: ./listmonk --install --yes --config config.toml || true
+
+      - name: Start Listmonk with SMTP setup
+        command: bash src/start.sh
+
+    env:
+      DB_HOST: ms-postgres-v1-${{ team.id }}-db
+      DB_PASSWORD: ${{ vault.DB_PASSWORD }}
+      LISTMONK_ADMIN_USER: ${{ workspace.env['ADMIN_USER'] }}
+      LISTMONK_ADMIN_PASSWORD: ${{ vault.ADMIN_PASSWORD }}
+      SMTP_HOST: ${{ workspace.env['SMTP_HOST'] }}
+      SMTP_PORT: ${{ workspace.env['SMTP_PORT'] }}
+      SMTP_USER: ${{ workspace.env['SMTP_USER'] }}
+      SMTP_PASSWORD: ${{ vault.SMTP_PASSWORD }}
+      FROM_EMAIL: ${{ workspace.env['FROM_EMAIL'] }}
+      SITE_NAME: ${{ workspace.env['SITE_NAME'] }}
+
+    network:
+      ports:
+        - port: 3000
+          isPublic: false
+      paths:
+        - port: 3000
+          path: /
